@@ -1,1 +1,1 @@
-gradle clean build --console=plain
+gradle clean build --console=plain --rerun-tasks

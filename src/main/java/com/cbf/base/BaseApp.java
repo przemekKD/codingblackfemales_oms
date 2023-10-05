@@ -1,8 +1,8 @@
 package com.cbf.base;
 
-import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import java.nio.ByteBuffer;
@@ -11,13 +11,23 @@ public abstract class BaseApp<T> {
     private Thread mainThread;
     private volatile boolean isStopped;
     private final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1500));
-    private final String instanceName;
-    private final Transport transport;
+    protected final String instanceName;
+    private final Transport eventStream;
+    private final Transport commandStream;
     private final MessageListener messageHandler = this::doOnMessage;
 
     public BaseApp(String instanceName) {
+        this(instanceName,
+             new Transport(instanceName, TransportAddress.eventStreamAddress()),
+             new Transport(instanceName, TransportAddress.commandStreamAddress()));
+    }
+
+    public BaseApp(String instanceName,
+                   Transport eventStream,
+                   Transport commandStream) {
         this.instanceName = instanceName;
-        transport = new Transport(instanceName);
+        this.eventStream = eventStream;
+        this.commandStream = commandStream;
     }
 
     public T start() {
@@ -30,13 +40,10 @@ public abstract class BaseApp<T> {
         isStopped = true;
     }
 
-    public void run() {
-        final String message = instanceName + ":start";
-        transport.send(message);
-
+    private void run() {
 
         while (!isStopped) {
-            transport.receive(messageHandler);
+            eventStream.receive(messageHandler);
         }
     }
 
@@ -48,6 +55,10 @@ public abstract class BaseApp<T> {
     protected abstract void onMessage(DirectBuffer buffer, int offset, int length, Header header);
 
     protected void send(String message) {
-        transport.send(message);
+        commandStream.send(message);
+    }
+
+    protected void send(MutableDirectBuffer message) {
+        commandStream.send(message);
     }
 }

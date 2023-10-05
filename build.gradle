@@ -2,27 +2,43 @@ plugins {
     id 'application' 
 }
 
+sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
+
 repositories {
     mavenCentral() 
 }
 
+configurations{
+    sbe
+}
+
 dependencies {
     implementation 'io.aeron:aeron-all:1.42.1'
-    implementation "uk.co.real-logic:sbe-tool:1.27.0"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3' 
+    implementation 'uk.co.real-logic:sbe-tool:1.27.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    sbe('uk.co.real-logic:sbe-tool:1.27.0')
 }
 
 task generateMessages(type: JavaExec) {
-    main = 'uk.co.real_logic.sbe.SbeTool'
-    classpath = sourceSets.main.runtimeClasspath
-    systemProperties('sbe.output.dir': 'build/generated/src/main/java',
+    doFirst {
+        printf("Generate event_stream messages")
+    }
+    mainClass = 'uk.co.real_logic.sbe.SbeTool'
+    classpath = configurations.sbe
+    systemProperties('sbe.output.dir': "${buildDir}/generated/src/main/java",
             'sbe.target.language': 'Java',
             'sbe.validation.stop.on.error': 'true',
-            'sbe.validation.xsd': 'src/main/resources/sbe/sbe.xsd')
+//            'sbe.validation.xsd': 'src/main/resources/sbe/sbe.xsd'
+    )
     args = [
             'src/main/resources/event_stream.xml'
     ]
 }
+
+compileJava.dependsOn(generateMessages)
+//processResources.finalizedBy(generateMessages)
 
 tasks.named('test') {
     useJUnitPlatform()
@@ -32,4 +48,7 @@ tasks.named('test') {
                '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
                '--add-opens=java.base/java.io=ALL-UNNAMED',
                '--add-exports=jdk.unsupported/sun.misc=ALL-UNNAMED']
+    testLogging {
+        events "passed"
+    }
 }

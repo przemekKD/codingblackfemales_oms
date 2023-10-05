@@ -1,22 +1,19 @@
 package com.cbf.base;
 
 import io.aeron.Aeron;
-import io.aeron.BufferBuilder;
 import io.aeron.Publication;
 import io.aeron.Subscription;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.BusySpinIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.SleepingIdleStrategy;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import java.nio.ByteBuffer;
 
 public class Transport {
-    private static final int STREAM_ID = 1;
-    private static final String CHANNEL_ID = "aeron:ipc";
     private final String instanceName;
     private final Aeron aeron;
     private final UnsafeBuffer unsafeBuffer;
@@ -26,7 +23,7 @@ public class Transport {
     private final FragmentHandler messageHandler = this::doOnMessage;
     private MessageListener messageListener;
 
-    public Transport(String instanceName) {
+    public Transport(String instanceName, TransportAddress address) {
         this.instanceName = instanceName;
         idle = new BusySpinIdleStrategy();
         unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1500));
@@ -37,8 +34,8 @@ public class Transport {
         aeron = Aeron.connect(aeronCtx);
 
 
-        sub = aeron.addSubscription(CHANNEL_ID, STREAM_ID);
-        pub = aeron.addPublication(CHANNEL_ID, STREAM_ID);
+        sub = aeron.addSubscription(address.getChannelId(), address.getStreamId());
+        pub = aeron.addPublication(address.getChannelId(), address.getStreamId());
 
         while (!pub.isConnected()) {
             idle.idle();
@@ -66,7 +63,7 @@ public class Transport {
         send(unsafeBuffer);
     }
 
-    public void send(UnsafeBuffer unsafeBuffer) {
+    public void send(MutableDirectBuffer unsafeBuffer) {
         while (pub.offer(unsafeBuffer) < 0) {
             idle.idle();
         }
