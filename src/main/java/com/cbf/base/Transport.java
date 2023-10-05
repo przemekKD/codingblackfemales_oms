@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 
 public class Transport {
     private final String instanceName;
+    private final TransportAddress address;
     private final Aeron aeron;
     private final UnsafeBuffer unsafeBuffer;
     private final Publication pub;
@@ -25,6 +26,7 @@ public class Transport {
 
     public Transport(String instanceName, TransportAddress address) {
         this.instanceName = instanceName;
+        this.address = address;
         idle = new BusySpinIdleStrategy();
         unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1500));
 
@@ -59,13 +61,15 @@ public class Transport {
 
     public void send(String message) {
         unsafeBuffer.putStringAscii(0, message);
-        System.out.printf("[%s][%s][%s/%s] sending:%s%n", Thread.currentThread().getName(), instanceName, pub.channel(), pub.streamId(), message);
+        //System.out.printf("[%s][%s][%s/%s] sending:%s%n", Thread.currentThread().getName(), instanceName, pub.channel(), pub.streamId(), message);
         send(unsafeBuffer);
     }
 
     public void send(MutableDirectBuffer unsafeBuffer) {
-        while (pub.offer(unsafeBuffer) < 0) {
+        long result;
+        while ((result = pub.offer(unsafeBuffer)) < 0) {
             idle.idle();
         }
+        //System.out.printf("[%s][%s][%s/%s] send success result=%s", Thread.currentThread().getName(), instanceName, address.getChannelId(), address.getStreamId(), result);
     }
 }

@@ -5,32 +5,62 @@ import com.cbf.base.TransportAddress;
 import com.cbf.base.TransportReceiver;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
+import org.assertj.core.api.Assertions;
+
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class TestAgent {
-    private Transport commandStream;
-    private Transport eventStream;
+    private String instanceName;
+    private Transport writeStream;
+    private Transport readStream;
     private final TransportReceiver transportReceiver;
+    private final Set<String> messages = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    public TestAgent() {
-        this(TransportAddress.commandStreamAddress(), TransportAddress.eventStreamAddress());
+    public TestAgent(String instanceName) {
+        this(instanceName, TransportAddress.commandStreamAddress(), TransportAddress.eventStreamAddress());
     }
 
-    public TestAgent(int connectionPort) {
-        this(new TransportAddress(connectionPort), new TransportAddress(connectionPort));
+    public TestAgent(String instanceName, int connectionPort) {
+        this(instanceName + ":" + connectionPort, new TransportAddress(connectionPort), new TransportAddress(connectionPort));
     }
 
-    public TestAgent(TransportAddress writeStreamAddress,
+    public TestAgent(String instanceName,
+                     TransportAddress writeStreamAddress,
                      TransportAddress readStreamAddress) {
-        commandStream = new Transport(TestAgent.class.getSimpleName(), writeStreamAddress);
-        eventStream = new Transport(TestAgent.class.getSimpleName(), readStreamAddress);
-        transportReceiver = new TransportReceiver(eventStream, this::onMessage);
+        this.instanceName = instanceName;
+        writeStream = new Transport(TestAgent.class.getSimpleName(), writeStreamAddress);
+        readStream = new Transport(TestAgent.class.getSimpleName(), readStreamAddress);
+        transportReceiver = new TransportReceiver(readStream, this::onMessage);
+        transportReceiver.start();
+    }
+
+    public void stop() {
+        transportReceiver.stop();
     }
 
     public void injectCmd(String message) {
-        commandStream.send(message);
+        writeStream.send(message);
     }
 
-    private void onMessage(String channel, int streamId, DirectBuffer directBuffer, int offset, int length, Header header) {
+    private void onMessage(String channel, int streamId, DirectBuffer buffer, int offset, int length, Header header) {
+        System.out.printf("[%s][%s][%s/%s] received[%d]=%s%n", Thread.currentThread().getName(), instanceName, channel, streamId, length, buffer.getStringAscii(offset));
+        messages.add(buffer.getStringAscii(offset));
+    }
 
+    public void assertReceivedMessage(String expectedMessage) {
+        // await message
+        int cnt = 0;
+        while (!messages.contains(expectedMessage) && ++cnt < 100) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(50);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        Assertions.assertThat(messages).contains(expectedMessage);
     }
 }

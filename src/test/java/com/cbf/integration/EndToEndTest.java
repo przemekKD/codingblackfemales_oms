@@ -1,5 +1,6 @@
 package com.cbf.integration;
 
+import static org.assertj.core.api.Assertions.*;
 import com.cbf.gateway.Gateway;
 import com.cbf.oms.OrderManagerAlgo;
 import com.cbf.proxy.Proxy;
@@ -21,27 +22,29 @@ public class EndToEndTest {
 
     @BeforeEach
     public void setup() {
-        eventStreamAgent = new TestAgent();
+        eventStreamAgent = new TestAgent("eventStreamAgent");
         sequencer = new Sequencer().start();
         final int fixClientPort = 1001;
         proxy = new Proxy(fixClientPort).start();
-        fixClient = new TestAgent(fixClientPort);
+        fixClient = new TestAgent("fixClient", fixClientPort);
         gateway = new Gateway().start();
         orderManagerAlgo = new OrderManagerAlgo().start();
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    public void tearDown() {
         gateway.stop();
         proxy.stop();
+        fixClient.stop();
         orderManagerAlgo.stop();
         sequencer.stop();
-        TimeUnit.SECONDS.sleep(2);
     }
 
     @Test
     public void should_send_order_to_exchange() {
+        // when
         fixClient.injectCmd("FIX:NewOrderSingle");
-//        eventStreamAgent.injectCmd();
+        // then
+        fixClient.assertReceivedMessage("FIX:MsgType=ExecutionReport|OrdStatus=New|OrderID=1");
     }
 }

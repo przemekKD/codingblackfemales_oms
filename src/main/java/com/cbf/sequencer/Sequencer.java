@@ -14,7 +14,7 @@ public class Sequencer extends BaseApp<Sequencer> {
     private final EventBuilder eventBuilder = new EventBuilder();
     private final MessageHeaderDecoder headerDecoder = new MessageHeaderDecoder();
     private final CreateOrderDecoder createOrderCmd = new CreateOrderDecoder();
-    private final AcceptOrderDecoder acceptOrderDecoder = new AcceptOrderDecoder();
+    private final AcceptOrderDecoder acceptOrderCmd = new AcceptOrderDecoder();
     private int nextUniqueOrderId = 1;
 
     public Sequencer() {
@@ -41,8 +41,11 @@ public class Sequencer extends BaseApp<Sequencer> {
                              .buffer());
                 return;
             case AcceptOrderDecoder.TEMPLATE_ID:
-                acceptOrderDecoder.wrapAndApplyHeader(buffer, offset, headerDecoder);
-                System.out.printf("[%s][%s] received cmd=%s", Thread.currentThread().getName(), instanceName, acceptOrderDecoder);
+                acceptOrderCmd.wrapAndApplyHeader(buffer, offset, headerDecoder);
+                System.out.printf("[%s][%s] received cmd=%s", Thread.currentThread().getName(), instanceName, acceptOrderCmd);
+                send(eventBuilder.acceptOrder()
+                             .id(acceptOrderCmd.id())
+                             .buffer());
                 return;
         }
     }
