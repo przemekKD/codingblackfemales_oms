@@ -17,7 +17,7 @@ public class EventBuilder {
         return orderPending.wrapAndApplyHeader(sendBuffer, 0, headerEncoder);
     }
 
-    public OrderAcceptedEncoder acceptOrder(){
+    public OrderAcceptedEncoder orderAccepted(){
         return orderAccepted.wrapAndApplyHeader(sendBuffer, 0, headerEncoder);
     }
 }

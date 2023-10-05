@@ -5,23 +5,27 @@ import com.cbf.base.Transport;
 import com.cbf.base.TransportAddress;
 import com.cbf.base.TransportReceiver;
 import com.cbf.message.CommandBuilder;
-import com.cbf.stream.oms.AcceptOrderDecoder;
-import com.cbf.stream.oms.MessageHeaderDecoder;
-import com.cbf.stream.oms.OrderAcceptedDecoder;
-import com.cbf.stream.oms.Side;
+import com.cbf.message.EventDispatcher;
+import com.cbf.stream.oms.*;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 
 public class Proxy extends BaseApp<Proxy> {
     private final CommandBuilder commandBuilder = new CommandBuilder();
-    private final Transport clientConnection;
+    private final Transport writeClientConnectionChannel;
+    private final Transport readClientConnectionChannel;
     private final TransportReceiver clientConnectionReceiver;
-    private final MessageHeaderDecoder headerDecoder = new MessageHeaderDecoder();
 
     public Proxy(int listenOnPort) {
         super(Proxy.class.getSimpleName());
-        clientConnection = new Transport(Proxy.class.getSimpleName(), new TransportAddress(listenOnPort));
-        clientConnectionReceiver = new TransportReceiver(clientConnection, this::onFixMessage);
+        writeClientConnectionChannel = new Transport(Proxy.class.getSimpleName(), TransportAddress.serverConnectionChanel(listenOnPort));
+        readClientConnectionChannel = new Transport(Proxy.class.getSimpleName(), TransportAddress.clientConnectionChanel(listenOnPort));
+        clientConnectionReceiver = new TransportReceiver(readClientConnectionChannel, this::onFixMessage);
+    }
+
+    @Override
+    protected void init(EventDispatcher eventDispatcher) {
+        eventDispatcher.subscribe(OrderAcceptedDecoder.TEMPLATE_ID, this::onOrderAccepted);
     }
 
     public Proxy start() {
@@ -36,28 +40,22 @@ public class Proxy extends BaseApp<Proxy> {
     }
 
     protected void onFixMessage(String channel, int streamId, DirectBuffer buffer, int offset, int length, Header header) {
-        System.out.printf("[%s][%s][%s/%s] received[%d]=%s%n", Thread.currentThread().getName(), instanceName, channel, streamId, length, buffer.getStringAscii(offset));
-        if ("FIX:NewOrderSingle".equals(buffer.getStringAscii(offset))) {
-            send(commandBuilder.createOrder()
-                         .ticker("VOD.L")
-                         .side(Side.Buy)
-                         .quantity(100)
-                         .price(7596)
-                         .buffer());
+        final int contentLength = buffer.getInt(offset);
+        if(contentLength>0) {
+            String message = buffer.getStringAscii(offset);
+            System.out.printf("[%s][%s][%s/%s] received[%d][%d]=%s%n", Thread.currentThread().getName(), instanceName, channel, streamId, header.type(), length, message);
+            if (message.startsWith("FIX:MsgType=NewOrderSingle")) {
+                send(commandBuilder.createOrder()
+                             .ticker("VOD.L")
+                             .side(Side.Buy)
+                             .quantity(100)
+                             .price(7596)
+                             .buffer());
+            }
         }
     }
 
-    protected void onEventStreamMessage(DirectBuffer buffer, int offset, int length, Header header) {
-        headerDecoder.wrap(buffer, offset);
-        final int messageId = headerDecoder.templateId();
-        System.out.printf("[%s][%s] messageId=%s%n", Thread.currentThread().getName(), instanceName, messageId);
-        switch (messageId) {
-            case OrderAcceptedDecoder.TEMPLATE_ID:
-                OrderAcceptedDecoder orderAccepted = new OrderAcceptedDecoder();
-                orderAccepted.wrapAndApplyHeader(buffer, offset, headerDecoder);
-                System.out.printf("[%s][%s] received event=%s%n", Thread.currentThread().getName(), instanceName, orderAccepted);
-                clientConnection.send("FIX:MsgType=ExecutionReport|OrdStatus=New|OrderID=" + orderAccepted.id());
-                return;
-        }
+    private void onOrderAccepted(OrderAcceptedDecoder orderAccepted) {
+        writeClientConnectionChannel.send("FIX:MsgType=ExecutionReport|OrdStatus=New|OrderID=" + orderAccepted.id());
     }
 }

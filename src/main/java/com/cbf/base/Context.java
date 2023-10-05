@@ -20,8 +20,9 @@ public class Context {
                 .aeronDirectoryName("D:/tmp/aeron/cbf")
                 .threadingMode(ThreadingMode.DEDICATED)
                 .sharedIdleStrategy(new BusySpinIdleStrategy())
-                .clientLivenessTimeoutNs(TimeUnit.MINUTES.toNanos(30))
-                .publicationUnblockTimeoutNs(TimeUnit.MINUTES.toNanos(31))
+                .driverTimeoutMs(TimeUnit.MINUTES.toMillis(30)) // allow for debugging
+                .clientLivenessTimeoutNs(TimeUnit.MINUTES.toNanos(30)) // allow for debugging
+                .publicationUnblockTimeoutNs(TimeUnit.MINUTES.toNanos(31)) // allow for debugging
                 .dirDeleteOnShutdown(true);
         driver = MediaDriver.launchEmbedded(mediaDriverCtx);
     }

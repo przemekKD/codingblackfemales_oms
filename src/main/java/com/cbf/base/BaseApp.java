@@ -1,7 +1,6 @@
 package com.cbf.base;
 
-import io.aeron.logbuffer.Header;
-import org.agrona.DirectBuffer;
+import com.cbf.message.EventDispatcher;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -14,7 +13,8 @@ public abstract class BaseApp<T> {
     protected final String instanceName;
     private final Transport listenOnStream;
     private final Transport sendToStream;
-    private final MessageListener messageHandler = this::doOnMessage;
+    private final EventDispatcher eventDispatcher;
+    private final MessageListener messageHandler;
 
     public BaseApp(String instanceName) {
         this(instanceName,
@@ -28,7 +28,12 @@ public abstract class BaseApp<T> {
         this.instanceName = instanceName;
         this.listenOnStream = listenOnStream;
         this.sendToStream = sendToStream;
+        this.eventDispatcher = new EventDispatcher(instanceName);
+        this.messageHandler = eventDispatcher.getMessageHandler();
+        init(eventDispatcher);
     }
+
+    protected abstract void init(EventDispatcher eventDispatcher);
 
     public T start() {
         mainThread = new Thread(this::run);
@@ -46,13 +51,6 @@ public abstract class BaseApp<T> {
             listenOnStream.receive(messageHandler);
         }
     }
-
-    protected void doOnMessage(String channel, int streamId, DirectBuffer buffer, int offset, int length, Header header) {
-        System.out.printf("[%s][%s][%s/%s] received[%d]=%s%n", Thread.currentThread().getName(), instanceName, channel, streamId, length, buffer.getStringAscii(offset));
-        onEventStreamMessage(buffer, offset, length, header);
-    }
-
-    protected abstract void onEventStreamMessage(DirectBuffer buffer, int offset, int length, Header header);
 
     protected void send(String message) {
         sendToStream.send(message);

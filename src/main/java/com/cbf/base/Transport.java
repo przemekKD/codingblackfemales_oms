@@ -56,6 +56,9 @@ public class Transport {
     }
 
     protected void doOnMessage(DirectBuffer buffer, int offset, int length, Header header) {
+        if(messageListener==null){
+            System.out.println("AAAAAAAAAA");
+        }
         this.messageListener.onMessage(sub.channel(), sub.streamId(), buffer, offset, length, header);
     }
 

@@ -1,19 +1,9 @@
 package com.cbf.gateway;
 
 import com.cbf.base.BaseApp;
-import com.cbf.base.Transport;
-import io.aeron.Aeron;
-import io.aeron.Publication;
-import io.aeron.Subscription;
-import io.aeron.driver.MediaDriver;
-import io.aeron.logbuffer.FragmentHandler;
+import com.cbf.message.EventDispatcher;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.SleepingIdleStrategy;
-import org.agrona.concurrent.UnsafeBuffer;
-
-import java.nio.ByteBuffer;
 
 public class Gateway extends BaseApp<Gateway> {
 
@@ -21,7 +11,8 @@ public class Gateway extends BaseApp<Gateway> {
         super(Gateway.class.getSimpleName());
     }
 
-    protected void onEventStreamMessage(DirectBuffer buffer, int offset, int length, Header header) {
+    @Override
+    protected void init(EventDispatcher eventDispatcher) {
 
     }
 }

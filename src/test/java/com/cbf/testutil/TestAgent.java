@@ -19,12 +19,8 @@ public class TestAgent {
     private final TransportReceiver transportReceiver;
     private final Set<String> messages = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    public TestAgent(String instanceName) {
-        this(instanceName, TransportAddress.commandStreamAddress(), TransportAddress.eventStreamAddress());
-    }
-
     public TestAgent(String instanceName, int connectionPort) {
-        this(instanceName + ":" + connectionPort, new TransportAddress(connectionPort), new TransportAddress(connectionPort));
+        this(instanceName + ":" + connectionPort, TransportAddress.clientConnectionChanel(connectionPort), TransportAddress.serverConnectionChanel(connectionPort));
     }
 
     public TestAgent(String instanceName,
@@ -41,13 +37,16 @@ public class TestAgent {
         transportReceiver.stop();
     }
 
-    public void injectCmd(String message) {
+    public void injectMessage(String message) {
         writeStream.send(message);
     }
 
     private void onMessage(String channel, int streamId, DirectBuffer buffer, int offset, int length, Header header) {
-        System.out.printf("[%s][%s][%s/%s] received[%d]=%s%n", Thread.currentThread().getName(), instanceName, channel, streamId, length, buffer.getStringAscii(offset));
-        messages.add(buffer.getStringAscii(offset));
+        final int contentLength = buffer.getInt(offset);
+        if(contentLength>0) {
+            System.out.printf("[%s][%s][%s/%s] received[%d]=%s%n", Thread.currentThread().getName(), instanceName, channel, streamId, length, buffer.getStringAscii(offset));
+            messages.add(buffer.getStringAscii(offset));
+        }
     }
 
     public void assertReceivedMessage(String expectedMessage) {

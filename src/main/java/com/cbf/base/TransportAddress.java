@@ -16,6 +16,14 @@ public class TransportAddress {
         return new TransportAddress(EVENT_STREAM_ID);
     }
 
+    public static TransportAddress clientConnectionChanel(int connectionPort) {
+        return new TransportAddress(connectionPort);
+    }
+
+    public static TransportAddress serverConnectionChanel(int connectionPort) {
+        return new TransportAddress(connectionPort+1);
+    }
+
     public TransportAddress(int streamId) {
         this(CHANNEL_ID, streamId);
     }
