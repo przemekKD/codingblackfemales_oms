@@ -8,10 +8,28 @@ repositories {
 
 dependencies {
     implementation 'io.aeron:aeron-all:1.42.1'
+    implementation "uk.co.real-logic:sbe-tool:1.27.0"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3' 
 }
 
+task generateMessages(type: JavaExec) {
+    main = 'uk.co.real_logic.sbe.SbeTool'
+    classpath = sourceSets.main.runtimeClasspath
+    systemProperties('sbe.output.dir': 'build/generated/src/main/java',
+            'sbe.target.language': 'Java',
+            'sbe.validation.stop.on.error': 'true',
+            'sbe.validation.xsd': 'src/main/resources/sbe/sbe.xsd')
+    args = [
+            'src/main/resources/event_stream.xml'
+    ]
+}
 
 tasks.named('test') {
-    useJUnitPlatform() 
+    useJUnitPlatform()
+    jvmArgs = ['--add-exports=java.base/sun.nio.ch=ALL-UNNAMED',
+               '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED',
+               '--add-opens=java.base/java.lang=ALL-UNNAMED',
+               '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+               '--add-opens=java.base/java.io=ALL-UNNAMED',
+               '--add-exports=jdk.unsupported/sun.misc=ALL-UNNAMED']
 }

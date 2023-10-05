@@ -13,7 +13,7 @@ public abstract class BaseApp<T> {
     private final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1500));
     private final String instanceName;
     private final Transport transport;
-    private final FragmentHandler messageHandler = this::doOnMessage;
+    private final MessageListener messageHandler = this::doOnMessage;
 
     public BaseApp(String instanceName) {
         this.instanceName = instanceName;
@@ -35,17 +35,19 @@ public abstract class BaseApp<T> {
         transport.send(message);
 
 
-        while(!isStopped) {
-            while (transport.sub.poll(messageHandler, 1) <= 0) {
-                transport.idle.idle();
-            }
+        while (!isStopped) {
+            transport.receive(messageHandler);
         }
     }
 
-    protected void doOnMessage(DirectBuffer buffer, int offset, int length, Header header){
-        System.out.printf("[%s][%s][%s/%s] received[%d]=%s%n", Thread.currentThread().getName(), instanceName, transport.sub.channel(), transport.sub.streamId(), length, buffer.getStringAscii(offset));
+    protected void doOnMessage(String channel, int streamId, DirectBuffer buffer, int offset, int length, Header header) {
+        System.out.printf("[%s][%s][%s/%s] received[%d]=%s%n", Thread.currentThread().getName(), instanceName, channel, streamId, length, buffer.getStringAscii(offset));
         onMessage(buffer, offset, length, header);
     }
 
     protected abstract void onMessage(DirectBuffer buffer, int offset, int length, Header header);
+
+    protected void send(String message) {
+        transport.send(message);
+    }
 }

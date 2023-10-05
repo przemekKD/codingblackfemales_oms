@@ -1,8 +1,12 @@
 package com.cbf.base;
 
 import io.aeron.Aeron;
+import io.aeron.BufferBuilder;
 import io.aeron.Publication;
 import io.aeron.Subscription;
+import io.aeron.logbuffer.FragmentHandler;
+import io.aeron.logbuffer.Header;
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.BusySpinIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.SleepingIdleStrategy;
@@ -13,12 +17,14 @@ import java.nio.ByteBuffer;
 public class Transport {
     private static final int STREAM_ID = 1;
     private static final String CHANNEL_ID = "aeron:ipc";
-    public final IdleStrategy idle;
+    private final String instanceName;
+    private final Aeron aeron;
     private final UnsafeBuffer unsafeBuffer;
     private final Publication pub;
-    public final Subscription sub;
-    private final String instanceName;
-    static Aeron aeron;
+    private final IdleStrategy idle;
+    private final Subscription sub;
+    private final FragmentHandler messageHandler = this::doOnMessage;
+    private MessageListener messageListener;
 
     public Transport(String instanceName) {
         this.instanceName = instanceName;
@@ -28,9 +34,7 @@ public class Transport {
         String aeronDirectoryName = Context.instance().getDriver().aeronDirectoryName();
         System.out.printf("[%s][%s] aeronDirectoryName=[%s]%n", Thread.currentThread().getName(), instanceName, aeronDirectoryName);
         Aeron.Context aeronCtx = new Aeron.Context().aeronDirectoryName(aeronDirectoryName);
-        if(aeron==null) {
-            aeron = Aeron.connect(aeronCtx);
-        }
+        aeron = Aeron.connect(aeronCtx);
 
 
         sub = aeron.addSubscription(CHANNEL_ID, STREAM_ID);
@@ -41,8 +45,22 @@ public class Transport {
         }
     }
 
+    public void receive(final MessageListener messageListener) {
+        this.messageListener = messageListener;
+        try {
+            while (sub.poll(messageHandler, 1) <= 0) {
+                idle.idle();
+            }
+        }finally {
+            this.messageListener = null;
+        }
+    }
+
+    protected void doOnMessage(DirectBuffer buffer, int offset, int length, Header header) {
+        this.messageListener.onMessage(sub.channel(), sub.streamId(), buffer, offset, length, header);
+    }
+
     public void send(String message) {
-        unsafeBuffer.capacity();
         unsafeBuffer.putStringAscii(0, message);
         System.out.printf("[%s][%s][%s/%s] sending:%s%n", Thread.currentThread().getName(), instanceName, pub.channel(), pub.streamId(), message);
         send(unsafeBuffer);
@@ -53,9 +71,4 @@ public class Transport {
             idle.idle();
         }
     }
-
-//        FragmentHandler handler = (buffer, offset, length, header) -> System.out.println("received:" + buffer.getStringAscii(offset));
-//        while (sub.poll(handler, 1) <= 0) {
-//            idle.idle();
-//        }
 }

@@ -20,6 +20,7 @@ public class Context {
                 .threadingMode(ThreadingMode.DEDICATED)
                 .sharedIdleStrategy(new BusySpinIdleStrategy())
                 .clientLivenessTimeoutNs(TimeUnit.MINUTES.toNanos(30))
+                .publicationUnblockTimeoutNs(TimeUnit.MINUTES.toNanos(31))
                 .dirDeleteOnShutdown(true);
         driver = MediaDriver.launchEmbedded(mediaDriverCtx);
     }

@@ -11,6 +11,8 @@ public class Proxy extends BaseApp<Proxy> {
     }
 
     protected void onMessage(DirectBuffer buffer, int offset, int length, Header header) {
-
+        if("FIX:NewOrderSingle".equals(buffer.getStringAscii(offset))){
+            send("FIX:ack");
+        }
     }
 }

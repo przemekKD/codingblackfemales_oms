@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe"
+                   package="com.aeroncookbook.sbe"
+                   id="688"
+                   version="1"
+                   semanticVersion="0.1"
+                   description="Sample SBE Messages"
+                   byteOrder="littleEndian">
+
+    <types>
+        <enum name="Side" encodingType="int32">
+            <validValue name="Buy">1</validValue>
+            <validValue name="Sell">2</validValue>
+        </enum>
+    </types>
+
+    <sbe:message name="CreateNewOrderSingle" id="1" description="Command: create New order single">
+        <field name="ticker" id="1" type="varStringEncoding"/>
+        <field name="side" id="2" type="Side"/>
+        <field name="quantity" id="3" type="uint32"/>
+        <field name="price" id="3" type="uint64"/>
+    </sbe:message>
+
+    <sbe:message name="PendingNewOrderSingle" id="1" description="Event: New order single pending">
+        <field name="id" id="1" type="uint32"/>
+        <field name="ticker" id="2" type="varStringEncoding"/>
+        <field name="side" id="3" type="Side"/>
+        <field name="quantity" id="4" type="uint32"/>
+        <field name="price" id="5" type="uint64"/>
+    </sbe:message>
+
+</sbe:messageSchema>
