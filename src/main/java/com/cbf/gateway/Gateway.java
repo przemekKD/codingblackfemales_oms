@@ -21,7 +21,7 @@ public class Gateway extends BaseApp<Gateway> {
         super(Gateway.class.getSimpleName());
     }
 
-    protected void onMessage(DirectBuffer buffer, int offset, int length, Header header) {
+    protected void onEventStreamMessage(DirectBuffer buffer, int offset, int length, Header header) {
 
     }
 }

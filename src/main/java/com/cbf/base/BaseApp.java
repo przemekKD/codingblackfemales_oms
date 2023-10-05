@@ -12,8 +12,8 @@ public abstract class BaseApp<T> {
     private volatile boolean isStopped;
     private final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1500));
     protected final String instanceName;
-    private final Transport eventStream;
-    private final Transport commandStream;
+    private final Transport listenOnStream;
+    private final Transport sendToStream;
     private final MessageListener messageHandler = this::doOnMessage;
 
     public BaseApp(String instanceName) {
@@ -23,11 +23,11 @@ public abstract class BaseApp<T> {
     }
 
     public BaseApp(String instanceName,
-                   Transport eventStream,
-                   Transport commandStream) {
+                   Transport listenOnStream,
+                   Transport sendToStream) {
         this.instanceName = instanceName;
-        this.eventStream = eventStream;
-        this.commandStream = commandStream;
+        this.listenOnStream = listenOnStream;
+        this.sendToStream = sendToStream;
     }
 
     public T start() {
@@ -43,22 +43,22 @@ public abstract class BaseApp<T> {
     private void run() {
 
         while (!isStopped) {
-            eventStream.receive(messageHandler);
+            listenOnStream.receive(messageHandler);
         }
     }
 
     protected void doOnMessage(String channel, int streamId, DirectBuffer buffer, int offset, int length, Header header) {
         System.out.printf("[%s][%s][%s/%s] received[%d]=%s%n", Thread.currentThread().getName(), instanceName, channel, streamId, length, buffer.getStringAscii(offset));
-        onMessage(buffer, offset, length, header);
+        onEventStreamMessage(buffer, offset, length, header);
     }
 
-    protected abstract void onMessage(DirectBuffer buffer, int offset, int length, Header header);
+    protected abstract void onEventStreamMessage(DirectBuffer buffer, int offset, int length, Header header);
 
     protected void send(String message) {
-        commandStream.send(message);
+        sendToStream.send(message);
     }
 
     protected void send(MutableDirectBuffer message) {
-        commandStream.send(message);
+        sendToStream.send(message);
     }
 }

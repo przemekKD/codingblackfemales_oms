@@ -3,18 +3,19 @@ package com.cbf.sequencer;
 import com.cbf.base.BaseApp;
 import com.cbf.base.Transport;
 import com.cbf.base.TransportAddress;
-import com.cbf.message.CommandDecoder;
+import com.cbf.message.EventBuilder;
 import com.cbf.stream.oms.AcceptOrderDecoder;
-import com.cbf.stream.oms.CreateNewOrderSingleDecoder;
+import com.cbf.stream.oms.CreateOrderDecoder;
 import com.cbf.stream.oms.MessageHeaderDecoder;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 
 public class Sequencer extends BaseApp<Sequencer> {
-    private final CommandDecoder commandDecoder = new CommandDecoder();
+    private final EventBuilder eventBuilder = new EventBuilder();
     private final MessageHeaderDecoder headerDecoder = new MessageHeaderDecoder();
-    private final CreateNewOrderSingleDecoder createNewOrderSingleDecoder = new CreateNewOrderSingleDecoder();
+    private final CreateOrderDecoder createOrderCmd = new CreateOrderDecoder();
     private final AcceptOrderDecoder acceptOrderDecoder = new AcceptOrderDecoder();
+    private int nextUniqueOrderId = 1;
 
     public Sequencer() {
         super(Sequencer.class.getSimpleName(),
@@ -23,19 +24,30 @@ public class Sequencer extends BaseApp<Sequencer> {
         );
     }
 
-    protected void onMessage(DirectBuffer buffer, int offset, int length, Header header) {
+    protected void onEventStreamMessage(DirectBuffer buffer, int offset, int length, Header header) {
         headerDecoder.wrap(buffer, offset);
-        int messageId = headerDecoder.templateId();
+        final int messageId = headerDecoder.templateId();
         System.out.printf("[%s][%s]messageId=%s", Thread.currentThread().getName(), instanceName, messageId);
         switch (messageId) {
-            case 1:
-                createNewOrderSingleDecoder.wrapAndApplyHeader(buffer, offset, headerDecoder);
-                System.out.printf("[%s][%s]cmd=%s", Thread.currentThread().getName(), instanceName, createNewOrderSingleDecoder);
+            case CreateOrderDecoder.TEMPLATE_ID:
+                createOrderCmd.wrapAndApplyHeader(buffer, offset, headerDecoder);
+                System.out.printf("[%s][%s] received cmd=%s", Thread.currentThread().getName(), instanceName, createOrderCmd);
+                send(eventBuilder.orderPending()
+                             .id(nextUniqueOrderId())
+                             .ticker(createOrderCmd.ticker())
+                             .side(createOrderCmd.side())
+                             .quantity(createOrderCmd.quantity())
+                             .price(createOrderCmd.price())
+                             .buffer());
                 return;
-            case 3:
+            case AcceptOrderDecoder.TEMPLATE_ID:
                 acceptOrderDecoder.wrapAndApplyHeader(buffer, offset, headerDecoder);
-                System.out.printf("[%s][%s]cmd=%s", Thread.currentThread().getName(), instanceName, acceptOrderDecoder);
+                System.out.printf("[%s][%s] received cmd=%s", Thread.currentThread().getName(), instanceName, acceptOrderDecoder);
                 return;
         }
+    }
+
+    private long nextUniqueOrderId() {
+        return nextUniqueOrderId++;
     }
 }
