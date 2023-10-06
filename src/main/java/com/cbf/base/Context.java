@@ -17,7 +17,6 @@ public class Context {
     private Context() {
         final MediaDriver.Context mediaDriverCtx = new MediaDriver.Context()
                 .dirDeleteOnStart(true)
-                .aeronDirectoryName("D:/tmp/aeron/cbf")
                 .threadingMode(ThreadingMode.DEDICATED)
                 .sharedIdleStrategy(new BusySpinIdleStrategy())
                 .driverTimeoutMs(TimeUnit.MINUTES.toMillis(30)) // allow for debugging

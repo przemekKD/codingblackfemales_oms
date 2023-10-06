@@ -15,22 +15,22 @@ public class CommandBuilder {
     private final RejectOrderCancelEncoder rejectOrderCancel = new RejectOrderCancelEncoder();
 
     public CreateOrderEncoder createOrder() {
-        return createOrder.wrapAndApplyHeader(new UnsafeBuffer(ByteBuffer.allocate(1500)), 0, headerEncoder);
+        return createOrder.wrapAndApplyHeader(sendBuffer, 0, headerEncoder);
     }
 
     public AcceptOrderEncoder acceptOrder() {
-        return acceptOrder.wrapAndApplyHeader(new UnsafeBuffer(ByteBuffer.allocate(1500)), 0, headerEncoder);
+        return acceptOrder.wrapAndApplyHeader(sendBuffer, 0, headerEncoder);
     }
 
     public RequestCancelOrderEncoder requestCancelOrder() {
-        return requestCancelOrder.wrapAndApplyHeader(new UnsafeBuffer(ByteBuffer.allocate(1500)), 0, headerEncoder);
+        return requestCancelOrder.wrapAndApplyHeader(sendBuffer, 0, headerEncoder);
     }
 
     public AcceptOrderCancelEncoder acceptOrderCancel() {
-        return acceptOrderCancel.wrapAndApplyHeader(new UnsafeBuffer(ByteBuffer.allocate(1500)), 0, headerEncoder);
+        return acceptOrderCancel.wrapAndApplyHeader(sendBuffer, 0, headerEncoder);
     }
 
     public RejectOrderCancelEncoder rejectOrderCancel() {
-        return rejectOrderCancel.wrapAndApplyHeader(new UnsafeBuffer(ByteBuffer.allocate(1500)), 0, headerEncoder);
+        return rejectOrderCancel.wrapAndApplyHeader(sendBuffer, 0, headerEncoder);
     }
 }
