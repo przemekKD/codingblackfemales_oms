@@ -4,6 +4,8 @@ import com.cbf.base.BaseApp;
 import com.cbf.base.Transport;
 import com.cbf.base.TransportAddress;
 import com.cbf.base.TransportReceiver;
+import com.cbf.fix.FixMessage;
+import com.cbf.fix.FixTag;
 import com.cbf.message.CommandBuilder;
 import com.cbf.message.EventDispatcher;
 import com.cbf.stream.oms.*;
@@ -12,6 +14,7 @@ import org.agrona.DirectBuffer;
 
 public class Proxy extends BaseApp<Proxy> {
     private final CommandBuilder commandBuilder = new CommandBuilder();
+    private final FixMessage fixMessage = new FixMessage();
     private final Transport writeClientConnectionChannel;
     private final Transport readClientConnectionChannel;
     private final TransportReceiver clientConnectionReceiver;
@@ -41,16 +44,19 @@ public class Proxy extends BaseApp<Proxy> {
 
     protected void onFixMessage(String channel, int streamId, DirectBuffer buffer, int offset, int length, Header header) {
         final int contentLength = buffer.getInt(offset);
-        if(contentLength>0) {
+        if (contentLength > 0) {
             String message = buffer.getStringAscii(offset);
             System.out.printf("[%s][%s][%s/%s] received[%d][%d]=%s%n", Thread.currentThread().getName(), instanceName, channel, streamId, header.type(), length, message);
-            if (message.startsWith("FIX:MsgType=NewOrderSingle")) {
-                send(commandBuilder.createOrder()
-                             .ticker("VOD.L")
-                             .side(Side.Buy)
-                             .quantity(100)
-                             .price(7596)
-                             .buffer());
+            if (message.startsWith("FIX:")) {
+                fixMessage.parse(message);
+                if ("NewOrderSingle".equals(fixMessage.get(FixTag.MsgType))) {
+                    send(commandBuilder.createOrder()
+                                 .ticker(fixMessage.get(FixTag.Symbol))
+                                 .side(Side.valueOf(fixMessage.get(FixTag.Side)))
+                                 .quantity(Integer.parseInt(fixMessage.get(FixTag.OrderQty)))
+                                 .price(fixMessage.getDecimalAsLong(FixTag.Price))
+                                 .buffer());
+                }
             }
         }
     }
