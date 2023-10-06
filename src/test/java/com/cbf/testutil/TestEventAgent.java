@@ -63,5 +63,6 @@ public class TestEventAgent {
         }
 
         Assertions.assertThat(allEvents).contains(expectedEventString);
+        allEvents.remove(expectedEventString);
     }
 }

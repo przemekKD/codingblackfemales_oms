@@ -42,12 +42,43 @@ public class EndToEndTest {
     }
 
     @Test
-    public void should_send_order_to_exchange() {
+    public void should_accept_fix_order() {
         // when
         fixClient.injectMessage("FIX:MsgType=NewOrderSingle|Symbol=VOD.L|Side=Buy|OrderQty=100|Price=75.96");
         // then
         eventStreamAgent.assertEvent(eventBuilder.orderPending().id(1).ticker("VOD.L").side(Side.Buy).quantity(100).price(7596));
         eventStreamAgent.assertEvent(eventBuilder.orderAccepted().id(1));
         fixClient.assertReceivedMessage("FIX:MsgType=ExecutionReport|OrdStatus=New|OrderID=1");
+        // when
+        fixClient.injectMessage("FIX:MsgType=OrderCancelRequest|OrderID=1");
+    }
+
+    @Test
+    public void should_cancel_accept_fix_order() {
+        // when
+        fixClient.injectMessage("FIX:MsgType=NewOrderSingle|Symbol=VOD.L|Side=Buy|OrderQty=100|Price=75.96");
+        // then
+        eventStreamAgent.assertEvent(eventBuilder.orderPending().id(1).ticker("VOD.L").side(Side.Buy).quantity(100).price(7596));
+        eventStreamAgent.assertEvent(eventBuilder.orderAccepted().id(1));
+        fixClient.assertReceivedMessage("FIX:MsgType=ExecutionReport|OrdStatus=New|OrderID=1");
+
+        // when
+        fixClient.injectMessage("FIX:MsgType=OrderCancelRequest|OrderID=1");
+        // then
+        eventStreamAgent.assertEvent(eventBuilder.orderCancelRequested().id(1));
+        fixClient.assertReceivedMessage("FIX:MsgType=ExecutionReport|ExecType=PendingCancel|OrderID=1");
+        eventStreamAgent.assertEvent(eventBuilder.orderCancelAccepted().id(1));
+        fixClient.assertReceivedMessage("FIX:MsgType=ExecutionReport|ExecType=Canceled|OrderID=1");
+    }
+
+    @Test
+    public void should_cancel_reject_unknown_order() {
+        // when
+        fixClient.injectMessage("FIX:MsgType=OrderCancelRequest|OrderID=2");
+        // then
+        eventStreamAgent.assertEvent(eventBuilder.orderCancelRequested().id(2));
+        fixClient.assertReceivedMessage("FIX:MsgType=ExecutionReport|ExecType=PendingCancel|OrderID=2");
+        eventStreamAgent.assertEvent(eventBuilder.orderCancelRejected().id(2));
+        fixClient.assertReceivedMessage("FIX:MsgType=OrderCancelReject|OrderID=2");
     }
 }

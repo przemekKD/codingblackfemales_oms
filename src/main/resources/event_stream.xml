@@ -44,4 +44,28 @@
         <field name="id" id="1" type="uint32"/>
     </sbe:message>
 
+    <sbe:message name="RequestCancelOrder" id="5">
+        <field name="id" id="1" type="uint32"/>
+    </sbe:message>
+
+    <sbe:message name="OrderCancelRequested" id="6">
+        <field name="id" id="1" type="uint32"/>
+    </sbe:message>
+
+    <sbe:message name="AcceptOrderCancel" id="7">
+        <field name="id" id="1" type="uint32"/>
+    </sbe:message>
+
+    <sbe:message name="OrderCancelAccepted" id="8">
+        <field name="id" id="1" type="uint32"/>
+    </sbe:message>
+
+    <sbe:message name="RejectOrderCancel" id="9">
+        <field name="id" id="1" type="uint32"/>
+    </sbe:message>
+
+    <sbe:message name="OrderCancelRejected" id="10">
+        <field name="id" id="1" type="uint32"/>
+    </sbe:message>
+
 </sbe:messageSchema>

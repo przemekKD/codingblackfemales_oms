@@ -5,5 +5,6 @@ public enum FixTag {
     Symbol,
     Side,
     OrderQty,
-    Price
+    Price,
+    OrderID
 }

@@ -4,9 +4,7 @@ import com.cbf.base.Transport;
 import com.cbf.base.TransportAddress;
 import com.cbf.base.TransportReceiver;
 import com.cbf.message.EventBuilder;
-import com.cbf.stream.oms.AcceptOrderDecoder;
-import com.cbf.stream.oms.CreateOrderDecoder;
-import com.cbf.stream.oms.MessageHeaderDecoder;
+import com.cbf.stream.oms.*;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 
@@ -19,6 +17,9 @@ public class Sequencer {
     private final MessageHeaderDecoder headerDecoder = new MessageHeaderDecoder();
     private final CreateOrderDecoder createOrderCmd = new CreateOrderDecoder();
     private final AcceptOrderDecoder acceptOrderCmd = new AcceptOrderDecoder();
+    private final RequestCancelOrderDecoder requestCancelOrderCmd = new RequestCancelOrderDecoder();
+    private final AcceptOrderCancelDecoder acceptOrderCancelCmd = new AcceptOrderCancelDecoder();
+    private final RejectOrderCancelDecoder rejectOrderCancelCmd = new RejectOrderCancelDecoder();
     private int nextUniqueOrderId = 1;
 
     public Sequencer() {
@@ -59,6 +60,21 @@ public class Sequencer {
                 sendToStream.send(eventBuilder.orderAccepted()
                                           .id(acceptOrderCmd.id())
                                           .buffer());
+                return;
+            case RequestCancelOrderDecoder.TEMPLATE_ID:
+                requestCancelOrderCmd.wrapAndApplyHeader(buffer, offset, headerDecoder);
+                System.out.printf("[%s][%s] received cmd=%s%n", Thread.currentThread().getName(), instanceName, requestCancelOrderCmd);
+                sendToStream.send(eventBuilder.orderCancelRequested().id(requestCancelOrderCmd.id()).buffer());
+                return;
+            case AcceptOrderCancelDecoder.TEMPLATE_ID:
+                acceptOrderCancelCmd.wrapAndApplyHeader(buffer, offset, headerDecoder);
+                System.out.printf("[%s][%s] received cmd=%s%n", Thread.currentThread().getName(), instanceName, acceptOrderCancelCmd);
+                sendToStream.send(eventBuilder.orderCancelAccepted().id(acceptOrderCancelCmd.id()).buffer());
+                return;
+            case RejectOrderCancelDecoder.TEMPLATE_ID:
+                rejectOrderCancelCmd.wrapAndApplyHeader(buffer, offset, headerDecoder);
+                System.out.printf("[%s][%s] received cmd=%s%n", Thread.currentThread().getName(), instanceName, rejectOrderCancelCmd);
+                sendToStream.send(eventBuilder.orderCancelRejected().id(rejectOrderCancelCmd.id()).buffer());
                 return;
         }
     }

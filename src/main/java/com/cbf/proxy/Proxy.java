@@ -29,6 +29,9 @@ public class Proxy extends BaseApp<Proxy> {
     @Override
     protected void init(EventDispatcher eventDispatcher) {
         eventDispatcher.subscribe(OrderAcceptedDecoder.TEMPLATE_ID, this::onOrderAccepted);
+        eventDispatcher.subscribe(OrderCancelRequestedDecoder.TEMPLATE_ID, this::onOrderCancelRequested);
+        eventDispatcher.subscribe(OrderCancelAcceptedDecoder.TEMPLATE_ID, this::onOrderCancelAccepted);
+        eventDispatcher.subscribe(OrderCancelRejectedDecoder.TEMPLATE_ID, this::onOrderCancelRejected);
     }
 
     public Proxy start() {
@@ -53,8 +56,12 @@ public class Proxy extends BaseApp<Proxy> {
                     send(commandBuilder.createOrder()
                                  .ticker(fixMessage.get(FixTag.Symbol))
                                  .side(Side.valueOf(fixMessage.get(FixTag.Side)))
-                                 .quantity(Integer.parseInt(fixMessage.get(FixTag.OrderQty)))
+                                 .quantity(fixMessage.getInt(FixTag.OrderQty))
                                  .price(fixMessage.getDecimalAsLong(FixTag.Price))
+                                 .buffer());
+                } else if ("OrderCancelRequest".equals(fixMessage.get(FixTag.MsgType))) {
+                    send(commandBuilder.requestCancelOrder()
+                                 .id(fixMessage.getInt(FixTag.OrderID))
                                  .buffer());
                 }
             }
@@ -63,5 +70,17 @@ public class Proxy extends BaseApp<Proxy> {
 
     private void onOrderAccepted(OrderAcceptedDecoder orderAccepted) {
         writeClientConnectionChannel.send("FIX:MsgType=ExecutionReport|OrdStatus=New|OrderID=" + orderAccepted.id());
+    }
+
+    private void onOrderCancelRequested(OrderCancelRequestedDecoder orderCancelRequested) {
+        writeClientConnectionChannel.send("FIX:MsgType=ExecutionReport|ExecType=PendingCancel|OrderID=" + orderCancelRequested.id());
+    }
+
+    private void onOrderCancelAccepted(OrderCancelAcceptedDecoder orderCancelAccepted) {
+        writeClientConnectionChannel.send("FIX:MsgType=ExecutionReport|ExecType=Canceled|OrderID=" + orderCancelAccepted.id());
+    }
+
+    private void onOrderCancelRejected(OrderCancelRejectedDecoder orderCancelRejected) {
+        writeClientConnectionChannel.send("FIX:MsgType=OrderCancelReject|OrderID=" + orderCancelRejected.id());
     }
 }

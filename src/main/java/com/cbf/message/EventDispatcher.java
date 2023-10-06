@@ -1,9 +1,7 @@
 package com.cbf.message;
 
 import com.cbf.base.MessageListener;
-import com.cbf.stream.oms.MessageHeaderDecoder;
-import com.cbf.stream.oms.OrderAcceptedDecoder;
-import com.cbf.stream.oms.OrderPendingDecoder;
+import com.cbf.stream.oms.*;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -13,6 +11,9 @@ public class EventDispatcher {
     private final MessageHeaderDecoder headerDecoder = new MessageHeaderDecoder();
     private final OrderPendingDecoder orderPending = new OrderPendingDecoder();
     private final OrderAcceptedDecoder orderAccepted = new OrderAcceptedDecoder();
+    private final OrderCancelRequestedDecoder orderCancelRequested = new OrderCancelRequestedDecoder();
+    private final OrderCancelAcceptedDecoder orderCancelAccepted = new OrderCancelAcceptedDecoder();
+    private final OrderCancelRejectedDecoder orderCancelRejected = new OrderCancelRejectedDecoder();
     private final Int2ObjectHashMap<EventListener<?>> messageIdToSubscriber = new Int2ObjectHashMap<>();
     private final MessageListener messageHandler = this::onEventStreamMessage;
     private EventListener allEventListener;
@@ -44,6 +45,18 @@ public class EventDispatcher {
             case OrderAcceptedDecoder.TEMPLATE_ID:
                 orderAccepted.wrapAndApplyHeader(buffer, offset, headerDecoder);
                 dispatch(channel, streamId, messageId, orderAccepted);
+                return;
+            case OrderCancelRequestedDecoder.TEMPLATE_ID:
+                orderCancelRequested.wrapAndApplyHeader(buffer, offset, headerDecoder);
+                dispatch(channel, streamId, messageId, orderCancelRequested);
+                return;
+            case OrderCancelAcceptedDecoder.TEMPLATE_ID:
+                orderCancelAccepted.wrapAndApplyHeader(buffer, offset, headerDecoder);
+                dispatch(channel, streamId, messageId, orderCancelAccepted);
+                return;
+            case OrderCancelRejectedDecoder.TEMPLATE_ID:
+                orderCancelRejected.wrapAndApplyHeader(buffer, offset, headerDecoder);
+                dispatch(channel, streamId, messageId, orderCancelRejected);
                 return;
         }
     }

@@ -19,6 +19,14 @@ public class FixMessage {
         return tagToVal.get(tag);
     }
 
+    public int getInt(FixTag tag) {
+        return Integer.parseInt(get(tag));
+    }
+
+    public long getLong(FixTag tag) {
+        return Long.parseLong(get(tag));
+    }
+
     public long getDecimalAsLong(FixTag tag) {
         String val = get(tag);
         long result = 0;

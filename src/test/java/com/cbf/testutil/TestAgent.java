@@ -61,5 +61,6 @@ public class TestAgent {
         }
 
         Assertions.assertThat(messages).contains(expectedMessage);
+        messages.remove(expectedMessage);
     }
 }
