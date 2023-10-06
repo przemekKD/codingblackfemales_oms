@@ -14,8 +14,9 @@ public class Order {
         return orderStatus;
     }
 
-    public void setOrderStatus(OrderStatus orderStatus) {
+    public Order setOrderStatus(OrderStatus orderStatus) {
         this.orderStatus = orderStatus;
+        return this;
     }
 
     public long getId() {

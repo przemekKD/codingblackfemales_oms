@@ -50,29 +50,23 @@ public class Transport {
             while (sub.poll(messageHandler, 1) <= 0) {
                 idle.idle();
             }
-        }finally {
+        } finally {
             this.messageListener = null;
         }
     }
 
     protected void doOnMessage(DirectBuffer buffer, int offset, int length, Header header) {
-        if(messageListener==null){
-            System.out.println("AAAAAAAAAA");
-        }
         this.messageListener.onMessage(sub.channel(), sub.streamId(), buffer, offset, length, header);
     }
 
     public void send(String message) {
         unsafeBuffer.putStringAscii(0, message);
-        //System.out.printf("[%s][%s][%s/%s] sending:%s%n", Thread.currentThread().getName(), instanceName, pub.channel(), pub.streamId(), message);
         send(unsafeBuffer);
     }
 
     public void send(MutableDirectBuffer unsafeBuffer) {
-        long result;
-        while ((result = pub.offer(unsafeBuffer)) < 0) {
+        while (pub.offer(unsafeBuffer) < 0) {
             idle.idle();
         }
-        //System.out.printf("[%s][%s][%s/%s] send success result=%s", Thread.currentThread().getName(), instanceName, address.getChannelId(), address.getStreamId(), result);
     }
 }

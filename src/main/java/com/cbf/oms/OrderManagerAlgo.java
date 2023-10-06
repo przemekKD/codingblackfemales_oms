@@ -6,7 +6,6 @@ import com.cbf.message.EventDispatcher;
 import com.cbf.stream.oms.OrderAcceptedDecoder;
 import com.cbf.stream.oms.OrderCancelRequestedDecoder;
 import com.cbf.stream.oms.OrderPendingDecoder;
-import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
 public class OrderManagerAlgo extends BaseApp<OrderManagerAlgo> {
@@ -28,6 +27,7 @@ public class OrderManagerAlgo extends BaseApp<OrderManagerAlgo> {
         orderIdToOrder.put(orderPending.id(),
                            new Order()
                                    .setId(orderPending.id())
+                                   .setOrderStatus(OrderStatus.Pending)
                                    .setTicker(orderPending.ticker())
                                    .setSide(orderPending.side())
                                    .setQuantity(orderPending.quantity())

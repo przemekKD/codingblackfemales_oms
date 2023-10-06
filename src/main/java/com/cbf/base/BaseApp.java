@@ -2,19 +2,15 @@ package com.cbf.base;
 
 import com.cbf.message.EventDispatcher;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
-import java.nio.ByteBuffer;
 
 public abstract class BaseApp<T> {
-    private Thread mainThread;
-    private volatile boolean isStopped;
-    private final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(1500));
     protected final String instanceName;
     private final Transport listenOnStream;
     private final Transport sendToStream;
     private final EventDispatcher eventDispatcher;
     private final MessageListener messageHandler;
+    private Thread mainThread;
+    private volatile boolean isStopped;
 
     public BaseApp(String instanceName) {
         this(instanceName,
@@ -50,10 +46,6 @@ public abstract class BaseApp<T> {
         while (!isStopped) {
             listenOnStream.receive(messageHandler);
         }
-    }
-
-    protected void send(String message) {
-        sendToStream.send(message);
     }
 
     protected void send(MutableDirectBuffer message) {
